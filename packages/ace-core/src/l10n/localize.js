@@ -29,5 +29,9 @@ const localizer = newLocalizer({
         name: "Dansk",
         translation: daJson,
     },
+    zh_TW: {
+    name: "Traditional Chinese",
+    translation: zh_TWJson,
+},
 });
 module.exports = { localizer };

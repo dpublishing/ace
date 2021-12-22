@@ -1,0 +1,34 @@
+{
+    "checkepub": {
+        "metadatainvalid": {
+            "kbtitle": "Schema.org無障礙輔助詮釋資料",
+            "resdesc": "使用由schema.org定義的詮釋資料之值",
+            "ruledesc": "'{{name}}' 詮釋資料必需為預期的值",
+            "testdesc": "對詮釋資料 '{{name}}' 而言，值 '{{value}}' 不合規"
+        },
+        "metadataprintpagenumbers": {
+            "kbtitle": "Schema.org無障礙輔助詮釋資料",
+            "resdesc": "在導覽文件中加入頁面列表",
+            "ruledesc": "當宣告無障礙輔助功能 'printPageNumbers' 時，導覽文件應該要包含一份頁面列表",
+            "testdesc": "宣告了無障礙輔助功能 'printPageNumbers' 但缺少頁面列表"
+        },
+        "metadataviolation": {
+            "kbtitle": "Schema.org無障礙輔助詮釋資料",
+            "resdesc": "在包裝文件中加入 '{{name}}' 詮釋資料特性",
+            "ruledesc": "出版品必需宣告 '{{name}}' 詮釋資料",
+            "testdesc": "確保呈現 '{{name}}' 詮釋資料"
+        },
+        "pagesourceviolation": {
+            "kbtitle": "頁面導覽",
+            "resdesc": "在包裝文件中加入 'dc:source' 詮釋資料特性",
+            "ruledesc": "具分頁點的出版品必需在詮釋資料中宣告 'dc:source' ",
+            "testdesc": "確保能識別分頁點來源"
+        },
+        "titleviolation": {
+            "kbtitle": "EPUB標題",
+            "resdesc": "在包裝文件中加入 'dc:title' 詮釋資料特性",
+            "ruledesc": "出版品必需要有標題",
+            "testdesc": "確保EPUB有個標題"
+        }
+    }
+}
