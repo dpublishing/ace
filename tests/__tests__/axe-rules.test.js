@@ -46,8 +46,47 @@ test('`bypass` rule is disabled', async () => {
 
 test('DPUB ARIA roles are allowed', async () => {
   const report = await ace('../data/axerule-dpubroles');
+  // console.log(JSON.stringify(report, null, 4));
+  expect(report['earl:result']['earl:outcome']).toEqual('fail');
+  const assertions = findAssertionsForDoc(report, 'content_001.xhtml');
+  expect(assertions).toBeDefined();
+  expect(assertions).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'aria-roles', 'earl:impact': 'minor', }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#deprecated1'] }),
+      }),
+    }),
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'aria-roles', 'earl:impact': 'minor', }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#deprecated2'] }),
+      }),
+    }),
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'aria-roles', 'earl:impact': 'minor', }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#deprecated3'] }),
+      }),
+    }),
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'aria-roles', 'earl:impact': 'minor', }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#deprecated4'] }),
+      }),
+    }),
+  ]));
+});
+test('DPUB ARIA roles are allowed (with epub:type deprecated)', async () => {
+  const report = await ace('../data/axerule-dpubroles-matching');
+  // console.log(JSON.stringify(report, null, 4));
   expect(report['earl:result']['earl:outcome']).toEqual('pass');
 });
+
 test('DPUB ARIA landmark unique', async () => {
   const report = await ace('../data/axerule-landmark-unique');
   expect(report['earl:result']['earl:outcome']).toEqual('fail');
@@ -117,6 +156,7 @@ test('DPUB ARIA landmark unique', async () => {
 
 test('Ensure page breaks have labels', async () => {
   const report = await ace('../data/axerule-pagebreak-label');
+  // console.log(JSON.stringify(report, null, 4));
   expect(report['earl:result']['earl:outcome']).toEqual('fail');
   const assertions = findAssertionsForDoc(report, 'content_001.xhtml');
   expect(assertions).toBeDefined();
@@ -133,6 +173,20 @@ test('Ensure page breaks have labels', async () => {
       'earl:result': expect.objectContaining({
         'earl:outcome': 'fail',
         'earl:pointer': expect.objectContaining({ css: ['#p4'] }),
+      }),
+    }),
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'pagebreak-label' }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#p7'] }),
+      }),
+    }),
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'pagebreak-label' }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#p8'] }),
       }),
     }),
   ]));
@@ -154,6 +208,43 @@ test('Ensure page breaks have labels', async () => {
       }),
     })
   ]));
+  expect(assertions).not.toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'pagebreak-label' }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#p5'] }),
+      }),
+    })
+  ]));
+  expect(assertions).not.toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      'earl:test': expect.objectContaining({ 'dct:title': 'pagebreak-label' }),
+      'earl:result': expect.objectContaining({
+        'earl:outcome': 'fail',
+        'earl:pointer': expect.objectContaining({ css: ['#p6'] }),
+      }),
+    })
+  ]));
+  // SEE: https://github.com/daisy/ace/issues/355
+  // expect(assertions).not.toEqual(expect.arrayContaining([
+  //   expect.objectContaining({
+  //     'earl:test': expect.objectContaining({ 'dct:title': 'pagebreak-label' }),
+  //     'earl:result': expect.objectContaining({
+  //       'earl:outcome': 'fail',
+  //       'earl:pointer': expect.objectContaining({ css: ['#p7'] }),
+  //     }),
+  //   })
+  // ]));
+  // expect(assertions).not.toEqual(expect.arrayContaining([
+  //   expect.objectContaining({
+  //     'earl:test': expect.objectContaining({ 'dct:title': 'pagebreak-label' }),
+  //     'earl:result': expect.objectContaining({
+  //       'earl:outcome': 'fail',
+  //       'earl:pointer': expect.objectContaining({ css: ['#p8'] }),
+  //     }),
+  //   })
+  // ]));
 });
 
 test('Checks that `epub:type` have matching ARIA roles', async() => {
@@ -265,4 +356,16 @@ test('Checks that `epub:type` have matching ARIA roles', async() => {
 test('Checks that `epub:type` `cover` isn’t reported has missing a matching ARIA role', async() => {
   const report = await ace('../data/axerule-matching-dpub-role-cover');
   expect(report['earl:result']['earl:outcome']).toEqual('pass');
+});
+
+test('Checks cover ARIA role with no alt', async() => {
+  const report = await ace('../data/axerule-matching-dpub-role-cover-no-alt');
+  // console.log(JSON.stringify(report, null, 4));
+  expect(report['earl:result']['earl:outcome']).toEqual('fail');
+});
+
+test('Checks cover ARIA role with empty alt', async() => {
+  const report = await ace('../data/axerule-matching-dpub-role-cover-empty-alt');
+  // console.log(JSON.stringify(report, null, 4));
+  expect(report['earl:result']['earl:outcome']).toEqual('fail');
 });

@@ -1,5 +1,6 @@
 'use strict';
 
+const path = require('path');
 const builders = require('@daisy/ace-report').builders;
 const winston = require('winston');
 
@@ -74,7 +75,20 @@ function checkMetadata(assertions, epub) {
       // Report missing metadata if it is required or recommended
       if (meta.required) assertions.withAssertions(newMetadataAssertion(name));
       if (meta.recommended) assertions.withAssertions(newMetadataAssertion(name, 'moderate'));
-    } else {
+    }
+    // This causes a "earl:outcome" FAIL (not PASS), even with MINOR "earl:impact" :(
+    // else if (meta.discouraged) {
+    //   assertions.withAssertions(newViolation({
+    //     impact: 'minor',
+    //     title: `metadata-${name.toLowerCase().replace('schema:', '')}-deprecated`,
+    //     testDesc: localize("checkepub.metadatadeprecated.testdesc", { name, interpolation: { escapeValue: false } }),
+    //     resDesc: localize("checkepub.metadatadeprecated.resdesc", { name, interpolation: { escapeValue: false } }),
+    //     kbPath: 'docs/metadata/schema.org/index.html',
+    //     kbTitle: localize("checkepub.metadatadeprecated.kbtitle"),
+    //     ruleDesc: localize("checkepub.metadatadeprecated.ruledesc", { name, interpolation: { escapeValue: false } })
+    //   }));
+    // }
+    else {
       if (!Array.isArray(values)) {
         values = [values]
       }
@@ -88,15 +102,77 @@ function checkMetadata(assertions, epub) {
       //   assertions.withAssertions(newViolation({
       //     impact: 'minor',
       //     title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
-      //     testDesc: localize("checkepub.metadatamultiple.testdesc", { value, name, interpolation: { escapeValue: false } }),
-      //     resDesc: localize("checkepub.metadatamultiple.resdesc", { name, interpolation: { escapeValue: false } }),
+      //     testDesc: lxxocalize("checkepub.metadatamultiple.testdesc", { value, name, interpolation: { escapeValue: false } }),
+      //     resDesc: lxxocalize("checkepub.metadatamultiple.resdesc", { name, interpolation: { escapeValue: false } }),
       //     kbPath: 'docs/metadata/schema.org/index.html',
-      //     kbTitle: localize("checkepub.metadatamultiple.kbtitle"),
-      //     ruleDesc: localize("checkepub.metadatamultiple.ruledesc", { name, interpolation: { escapeValue: false } })
+      //     kbTitle: lxxocalize("checkepub.metadatamultiple.kbtitle"),
+      //     ruleDesc: lxxocalize("checkepub.metadatamultiple.ruledesc", { name, interpolation: { escapeValue: false } })
       //   }))
       // }
 
-      if (meta.allowedValues) { // effectively excludes schema:accessibilitySummary
+      if (meta.allowedValues // effectively excludes schema:accessibilitySummary
+        && !meta.discouraged) {
+
+        if (values.length > 1 && (name === 'schema:accessibilityFeature' || name === 'schema:accessibilityHazard')) {
+
+          if (values.includes('unknown')) {
+            assertions.withAssertions(newViolation({
+              impact: 'moderate',
+              title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
+              testDesc: localize("checkepub.metadatainvalid.testdesc", { value: 'unknown/...', name, interpolation: { escapeValue: false } }),
+              resDesc: localize("checkepub.metadatainvalid.resdesc", { name, interpolation: { escapeValue: false } }),
+              kbPath: 'docs/metadata/schema.org/index.html',
+              kbTitle: localize("checkepub.metadatainvalid.kbtitle"),
+              ruleDesc: localize("checkepub.metadatainvalid.ruledesc", { name, interpolation: { escapeValue: false } })
+            }))
+          }
+          if (values.includes('none')) {
+            assertions.withAssertions(newViolation({
+              impact: 'moderate',
+              title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
+              testDesc: localize("checkepub.metadatainvalid.testdesc", { value: 'none/...', name, interpolation: { escapeValue: false } }),
+              resDesc: localize("checkepub.metadatainvalid.resdesc", { name, interpolation: { escapeValue: false } }),
+              kbPath: 'docs/metadata/schema.org/index.html',
+              kbTitle: localize("checkepub.metadatainvalid.kbtitle"),
+              ruleDesc: localize("checkepub.metadatainvalid.ruledesc", { name, interpolation: { escapeValue: false } })
+            }))
+          }
+          if (name === 'schema:accessibilityHazard') {
+            if (values.includes('flashing') && values.includes('noFlashingHazard')) {
+              assertions.withAssertions(newViolation({
+                impact: 'moderate',
+                title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
+                testDesc: localize("checkepub.metadatainvalid.testdesc", { value: 'flashing/noFlashingHazard', name, interpolation: { escapeValue: false } }),
+                resDesc: localize("checkepub.metadatainvalid.resdesc", { name, interpolation: { escapeValue: false } }),
+                kbPath: 'docs/metadata/schema.org/index.html',
+                kbTitle: localize("checkepub.metadatainvalid.kbtitle"),
+                ruleDesc: localize("checkepub.metadatainvalid.ruledesc", { name, interpolation: { escapeValue: false } })
+              }))
+            }
+            if (values.includes('motionSimulation') && values.includes('noMotionSimulationHazard')) {
+              assertions.withAssertions(newViolation({
+                impact: 'moderate',
+                title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
+                testDesc: localize("checkepub.metadatainvalid.testdesc", { value: 'motionSimulation/noMotionSimulationHazard', name, interpolation: { escapeValue: false } }),
+                resDesc: localize("checkepub.metadatainvalid.resdesc", { name, interpolation: { escapeValue: false } }),
+                kbPath: 'docs/metadata/schema.org/index.html',
+                kbTitle: localize("checkepub.metadatainvalid.kbtitle"),
+                ruleDesc: localize("checkepub.metadatainvalid.ruledesc", { name, interpolation: { escapeValue: false } })
+              }))
+            }
+            if (values.includes('sound') && values.includes('noSoundHazard')) {
+              assertions.withAssertions(newViolation({
+                impact: 'moderate',
+                title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
+                testDesc: localize("checkepub.metadatainvalid.testdesc", { value: 'sound/noSoundHazard', name, interpolation: { escapeValue: false } }),
+                resDesc: localize("checkepub.metadatainvalid.resdesc", { name, interpolation: { escapeValue: false } }),
+                kbPath: 'docs/metadata/schema.org/index.html',
+                kbTitle: localize("checkepub.metadatainvalid.kbtitle"),
+                ruleDesc: localize("checkepub.metadatainvalid.ruledesc", { name, interpolation: { escapeValue: false } })
+              }))
+            }
+          }
+        }
 
         values.forEach(value => {
 
@@ -112,7 +188,7 @@ function checkMetadata(assertions, epub) {
             splitValues.filter(splitValue => !meta.allowedValues.includes(splitValue))
             .forEach(splitValue => {
               assertions.withAssertions(newViolation({
-                impact: 'moderate',
+                impact: 'minor',
                 title: `metadata-${name.toLowerCase().replace('schema:', '')}-invalid`,
                 testDesc: localize("checkepub.metadatainvalid.testdesc", { value: splitValue, name, interpolation: { escapeValue: false } }),
                 resDesc: localize("checkepub.metadatainvalid.resdesc", { name, interpolation: { escapeValue: false } }),
@@ -125,7 +201,7 @@ function checkMetadata(assertions, epub) {
   
           // Check consistency of the printPageNumbers feature
           if (name === 'schema:accessibilityFeature'
-            && splitValues.includes('printPageNumbers')
+            && (splitValues.includes('printPageNumbers') || splitValues.includes('pageBreakMarkers'))
             && !epub.navDoc.hasPageList) {
     
             assertions.withAssertions(newViolation({
@@ -142,6 +218,252 @@ function checkMetadata(assertions, epub) {
       }
     }
   }
+}
+
+function checkMediaOverlays(epub) {
+  if (!epub.contentDocs) {
+    return undefined;
+  }
+  // console.log("EPUB", JSON.stringify(epub, null, 4));
+
+  const docs = [];
+  for (const doc of epub.contentDocs) {
+    if (doc.notInReadingOrder) { // NavDoc artificially appended
+      continue;
+    }
+    // docs.push({
+    //   full: doc.filepath,
+    //   relative: doc.relpath
+    // });
+    if (!doc.targetIDs) {
+      continue;
+    }
+    for (const o of doc.targetIDs) {
+      const epubType = o.epubType;
+      const isPageBreak = epubType && epubType.includes("pagebreak");
+      if (!isPageBreak) {
+        continue;
+      }
+      docs.push({
+        full: doc.filepath + "#" + o.id,
+        relative: doc.relpath + "#" + o.id,
+        epubType
+      });
+    }
+  }
+  // console.log("SPINE", JSON.stringify(docs, null, 4));
+
+  let assertions = undefined;
+  const assertionMap = {};
+
+  for (const doc of epub.contentDocs) {
+    if (doc.notInReadingOrder) { // NavDoc artificially appended
+      continue;
+    }
+    if (!doc.mediaOverlay || !doc.mediaOverlay.smilRefs) {
+      continue;
+    }
+    for (const smilRef of doc.mediaOverlay.smilRefs) {
+      const isPageBreak = smilRef.epubType && smilRef.epubType.includes("pagebreak");
+      if (isPageBreak) {
+        continue;
+      }
+      const found = docs.find((d) => d.full === smilRef.full);
+      if (found) {
+        const resPath = doc.mediaOverlay.smilRelPath;
+        let assertion = assertionMap[resPath];
+        if (!assertion) {
+          // console.log("ASS", resPath);
+          assertion = new builders.AssertionBuilder()
+            .withSubAssertions()
+            .withTestSubject(resPath, "");
+          assertionMap[resPath] = assertion;
+
+          if (!assertions) {
+            assertions = [];
+          }
+          assertions.push(assertion);
+        }
+        const ref = smilRef.src;
+        assertion.withAssertions(newViolation({
+          title: 'epub-pagelist-mediaoverlays',
+          testDesc: localize("checkepub.mediaoverlaypagebreakviolation.testdesc", { ref, interpolation: { escapeValue: false } }),
+          resDesc: localize("checkepub.mediaoverlaypagebreakviolation.resdesc", { ref, interpolation: { escapeValue: false } }),
+          kbPath: 'docs/sync-media/index.html',
+          kbTitle: localize("checkepub.mediaoverlaypagebreakviolation.kbtitle"),
+          ruleDesc: localize("checkepub.mediaoverlaypagebreakviolation.ruledesc", { ref, interpolation: { escapeValue: false } })
+        }));
+      }
+    }
+  }
+
+  return assertions;
+}
+
+function checkReadingOrder(epub) {
+
+  if (!epub.navDoc || !epub.contentDocs) {
+    return undefined;
+  }
+
+  const isFXL = epub.metadata['rendition:layout'] === "pre-paginated";
+
+  const resPath = "/" + epub.navDoc.src;
+  // Axe generates its own assertions for individual HTML files, including the NavDoc,
+  // but the subject filepath is only the filename, not the complete relative path inside the EPUB,
+  // so to ensure no collision we use a slash prefix (hacky! :( )
+  // TODO: merge assertions?
+  // const i = epub.navDoc.src.lastIndexOf("/");
+  // if (i >= 0) {
+  //   resPath = epub.navDoc.src.substring(i+1);
+  // } else {
+  //   resPath = epub.navDoc.src;
+  // }
+
+  const assertions = new builders.AssertionBuilder()
+    .withSubAssertions()
+    .withTestSubject(resPath, "");
+
+  // console.log("EPUB", JSON.stringify(epub, null, 4));
+  
+  const docs = [];
+  for (const doc of epub.contentDocs) {
+    if (doc.notInReadingOrder) { // NavDoc artificially appended
+      continue;
+    }
+    docs.push({
+      full: doc.filepath,
+      relative: doc.relpath
+    });
+    if (!doc.targetIDs) {
+      continue;
+    }
+    for (const o of doc.targetIDs) {
+      docs.push({
+        full: doc.filepath + "#" + o.id,
+        relative: doc.relpath + "#" + o.id,
+        epubType: o.epubType
+      });
+    }
+  }
+  // console.log("SPINE", JSON.stringify(docs, null, 4));
+
+  const pageListHrefs = epub.navDoc.pageListHrefs ? epub.navDoc.pageListHrefs : []; // triggers the "missing page break" error for completely absent navdoc/pagelist
+  if (pageListHrefs) { // always truthy (empty array included)
+    const pageListFilePathsAndTargetIDs = pageListHrefs.map((href) => {
+      const arr = href.split("#");
+      const filePath = path.join(path.dirname(epub.navDoc.filepath), arr[0]);
+      const targetID = arr[1];
+      const full = filePath + (targetID ? "#" + targetID : "");
+      return {
+        full,
+        relative: href
+      };
+    });
+    // console.log("PAGES", JSON.stringify(pageListFilePathsAndTargetIDs, null, 4));
+
+    // we ignore order! (unlike table of contents check)
+    // let pos = -1;
+    let failed = undefined;
+    for (const page of pageListFilePathsAndTargetIDs) {
+      const found = docs.findIndex((doc) => page.full === doc.full);
+      if (found === -1) {
+        failed = page;
+        failed.noTargetID = true;
+        // console.log("PAGE FAIL 1", JSON.stringify(failed, null, 4));
+      } else {
+        const epubType = docs[found].epubType;
+        const notPageBreak = !epubType || !epubType.includes("pagebreak");
+        if (notPageBreak && !isFXL
+          // || pos >= 0 && found < pos
+          ) {
+          failed = page;
+          failed.notPageBreak = notPageBreak;
+          // console.log("PAGE FAIL 2", found, pos, JSON.stringify(failed, null, 4));
+        }
+        // pos = found;
+      }
+
+      if (failed) {
+        const ref = failed.relative + (failed.notPageBreak ? " [epub:type=\"pagebreak\"!?]" : (failed.noTargetID ? " [id!?]" : ""));
+        assertions.withAssertions(newViolation({
+          title: 'epub-pagelist-broken',
+          testDesc: localize("checkepub.pagelistbrokenviolation.testdesc", { ref, interpolation: { escapeValue: false } }),
+          resDesc: localize("checkepub.pagelistbrokenviolation.resdesc", { ref, interpolation: { escapeValue: false } }),
+          kbPath: 'docs/navigation/pagelist.html',
+          kbTitle: localize("checkepub.pagelistbrokenviolation.kbtitle"),
+          ruleDesc: localize("checkepub.pagelistbrokenviolation.ruledesc", { ref, interpolation: { escapeValue: false } })
+        }));
+        // break;
+      }
+    }
+    if (!isFXL) {
+      for (const doc of docs) {
+        const epubType = doc.epubType;
+        const isPageBreak = epubType && epubType.includes("pagebreak");
+        if (!isPageBreak) {
+          continue;
+        }
+        const foundPage = pageListFilePathsAndTargetIDs.find((p) => p.full === doc.full);
+        if (!foundPage) {
+          const ref = doc.relative;
+          assertions.withAssertions(newViolation({
+            title: 'epub-pagelist-missing-pagebreak',
+            testDesc: localize("checkepub.missingpagebreakviolation.testdesc", { ref, interpolation: { escapeValue: false } }),
+            resDesc: localize("checkepub.missingpagebreakviolation.resdesc", { ref, interpolation: { escapeValue: false } }),
+            kbPath: 'docs/navigation/pagelist.html',
+            kbTitle: localize("checkepub.missingpagebreakviolation.kbtitle"),
+            ruleDesc: localize("checkepub.missingpagebreakviolation.ruledesc", { ref, interpolation: { escapeValue: false } })
+          }));
+        }
+      }
+    }
+  }
+  if (epub.navDoc.tocHrefs) {
+    const tocFilePathsAndTargetIDs = epub.navDoc.tocHrefs.map((href) => {
+      const arr = href.split("#");
+      const filePath = path.join(path.dirname(epub.navDoc.filepath), arr[0]);
+      const targetID = arr[1];
+      const full = filePath + (targetID ? "#" + targetID : "");
+      return {
+        full,
+        relative: href
+      };
+    });
+    // console.log("TOC", JSON.stringify(tocFilePathsAndTargetIDs, null, 4));
+
+    let pos = -1;
+    let failed = undefined;
+    for (const toc of tocFilePathsAndTargetIDs) {
+      const found = docs.findIndex((doc) => toc.full === doc.full);
+      if (found === -1) {
+        failed = toc;
+        failed.noTargetID = true;
+        // console.log("TOC FAIL 1", JSON.stringify(failed, null, 4));
+      } else {
+        if (pos >= 0 && found < pos) {
+          failed = toc;
+          // console.log("TOC FAIL 2", found, pos, JSON.stringify(failed, null, 4));
+        }
+        pos = found;
+      }
+
+      if (failed) {
+        const ref = failed.relative + (failed.noTargetID ? " [id!?]" : "");
+        assertions.withAssertions(newViolation({
+          title: 'epub-toc-order',
+          testDesc: localize("checkepub.ordertocviolation.testdesc", { ref, interpolation: { escapeValue: false } }),
+          resDesc: localize("checkepub.ordertocviolation.resdesc", { ref, interpolation: { escapeValue: false } }),
+          kbPath: 'docs/navigation/toc.html',
+          kbTitle: localize("checkepub.ordertocviolation.kbtitle"),
+          ruleDesc: localize("checkepub.ordertocviolation.ruledesc", { ref, interpolation: { escapeValue: false } })
+        }));
+        break;
+      }
+    }
+  }
+
+  return assertions;
 }
 
 function checkTitle(assertions, epub) {
@@ -183,6 +505,22 @@ function check(epub, report) {
     .withSubAssertions()
     .withTestSubject(epub.packageDoc.src, asString(epub.metadata['dc:title']));
 
+  if (!epub.opfLang) {
+    assertion.withAssertions(newViolation({
+      // impact: 'serious', DEFAULT
+      title: 'epub-lang',
+      testDesc: localize("checkepub.langmissing.testdesc"),
+      resDesc: localize("checkepub.langmissing.resdesc"),
+      kbPath: 'docs/epub/language.html',
+      kbTitle: localize("checkepub.langmissing.kbtitle"),
+      ruleDesc: localize("checkepub.langmissing.ruledesc")
+    }));
+  }
+
+  const assertionRO = checkReadingOrder(epub);
+
+  const assertionsMO = checkMediaOverlays(epub);
+
   // Check a11y metadata
   checkMetadata(assertion, epub);
 
@@ -192,7 +530,19 @@ function check(epub, report) {
   // Check page list is sourced
   checkPageSource(assertion, epub);
 
-  var builtAssertions = assertion.build();
+  if (assertionRO) {
+    const builtAssertionsRO = assertionRO.build();
+    report.addAssertions(builtAssertionsRO);
+  }
+
+  if (assertionsMO) {
+    for (const ass of assertionsMO) {
+      const builtAssertionsMO = ass.build();
+      report.addAssertions(builtAssertionsMO);
+    }
+  }
+
+  const builtAssertions = assertion.build();
   report.addAssertions(builtAssertions);
 
   // Report the Nav Doc

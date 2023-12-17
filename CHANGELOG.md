@@ -1,3 +1,55 @@
+<a name="1.3.2"></a>
+## [1.3.2](https://github.com/daisy/ace/compare/v1.3.1...v1.3.2) (2023-07-11)
+
+### Updates:
+
+* Fix: aligned with the metadata properties defined in the W3C Community Report, notably missing schema accessibility features pageNavigation, printPageNumbers synonym pageBreakMarkers.
+* Feature: added timeout configuration via environment variables, to override the Electron Axe runner processing logic: `ACE_TIMEOUT_INITIAL` (default `10000`, which provides a 10s time allowance for the web window to load its document and contents) and `ACE_TIMEOUT_EXTENSION` (default `480000` which provides a 480s / 8mn time allowance for the Axe checkers to execute inside the loaded document).
+
+<a name="1.3.1"></a>
+## [1.3.1](https://github.com/daisy/ace/compare/v1.3.0...v1.3.1) (2023-06-05)
+
+### Updates:
+
+* Hotfix for Ace App (GUI): moved Electron NPM package to devDependencies
+
+<a name="1.3.0"></a>
+## [1.3.0](https://github.com/daisy/ace/compare/v1.2.7...v1.3.0) (2023-06-05)
+
+### Updates:
+
+* Support for the EPUB Accessibility 1.1 specification "Conformance and Discoverability Requirements for EPUB publications" (W3C Recommendation dated 25 May 2023)
+* Fixed ordering rule/check in page list.
+* accessibilitySummary metadata is now recommended (SHOULD), not required (MUST). The impact/severity is downgraded from serious to moderate.
+* conformsTo metadata is a link in the a11y spec. 1.0 (IDPF WCAG URLs), but can be string label in 1.1
+* metadata "refines" is not filtered out for a11y properties that are globally hoisted to the level of the publication (unlike say, media overlays duration for individual spine items, or dc:title subtitle title-type refine)
+* Updated Electron Axe "runner" to latest version, includes recent Chromium browser engine revision (matches Ace App GUI 1.1.6).
+* Deprecated Puppeteer Axe "runner" in favour of the Electron one, which runs faster and is overall a better option as it delivers an experience consistent with Ace App (GUI). The Chromium version is now the same between Ace and Ace App. This alignment of technologies eliminates incorrectly-reported colour contrast violations (this was a notable discrepancy).
+* Upgraded the DAISY fork of Deque Axe to latest version 4.7.2 (this brings many fixes and alignments with the latest ARIA specifications) See https://github.com/daisy/axe-core/pull/11
+
+<a name="1.2.7"></a>
+## [1.2.7](https://github.com/daisy/ace/compare/v1.2.6...v1.2.7) (2022-07-10)
+
+### Updates:
+
+* Support for the EPUB Accessibility 1.1 specification "Conformance and Discoverability Requirements for EPUB publications" (W3C Candidate Recommendation Draft dated 07 June 2022)
+* Upgraded the DAISY fork of Deque Axe to latest version 4.4.2
+* Fixed links to the DAISY Knowledge Base
+* Other internal maintenance items, upgraded various NPM package dependencies (notably the latest versions of Electron and Puppeteer which run the in-webview tests under the hood)
+
+<a name="1.2.6"></a>
+## [1.2.6](https://github.com/daisy/ace/compare/v1.2.5...v1.2.6) (2022-02-03)
+
+### Updates:
+
+* Removed the HTTP server which could cause firewall issues (this does not affect the Ace command line which uses Puppeteer, it affects Ace App which uses Electron to run Deque Axe under the hood)
+* Upgraded the DAISY fork of Deque Axe, version 4.4.0 which includes DPUB ARIA 1.1 updates, as well as many other improved checker rules ( https://github.com/daisy/axe-core/pull/8 )
+* The Ace evaluation report (JSON and HTML) now contains information about Ace App (GUI) in addition to the version of the core / command line tool.
+* The metadata properties accessibilityControl and accessibilityAPI are now discouraged. Ace reports them as "present", but not as "missing", and does not check their values syntax.
+* The HTML report now references local JS and CSS dependencies (they were external links before)
+* Added Japanese localisation (many thanks to the translators!)
+* Updated several key NPM package dependencies, notably Electron v17 and Puppeteer v13 (both major increments, but non-breaking)
+
 <a name="1.2.5"></a>
 ## [1.2.5](https://github.com/daisy/ace/compare/v1.2.4...v1.2.5) (2021-11-04)
 

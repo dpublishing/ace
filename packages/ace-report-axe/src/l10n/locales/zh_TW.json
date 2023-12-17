@@ -1,7 +1,7 @@
 {
     "kb": {
         "accesskeys": "便捷鍵",
-        "area-alt": "影像地圖",
+        "area-alt": "圖片地圖",
         "aria-allowed-attr": "ARIA",
         "aria-hidden-body": "ARIA",
         "aria-required-attr": "ARIA",
@@ -12,7 +12,6 @@
         "aria-valid-attr-value": "ARIA",
         "audio-caption": "聲音",
         "button-name": "表單",
-        "checkboxgroup": "表單",
         "color-contrast": "色彩",
         "definition-list": "列表",
         "dlitem": "列表",
@@ -30,21 +29,19 @@
         "image-redundant-alt": "圖片",
         "input-image-alt": "圖片",
         "label": "表單",
-        "label-title-only": "標單",
-        "layout-table": "表格",
+        "label-title-only": "表單",
         "link-in-text-block": "連結",
         "link-name": "連結",
-        "list": "列表",
-        "listitem": "列表",
+        "list": "連結",
+        "listitem": "連結",
         "meta-refresh": "Meta",
         "meta-viewport": "Meta",
         "meta-viewport-large": "Meta",
         "object-alt": "物件",
         "p-as-heading": "標題",
-        "pagebreak-label": "分頁點",
-        "radiogroup": "表單",
+        "pagebreak-label": "換頁位置",
         "scope-attr-valid": "表格",
-        "server-side-image-map": "影像地圖",
+        "server-side-image-map": "圖片地圖",
         "style": "樣式",
         "table-duplicate-name": "表格",
         "table-fake-caption": "表格",
@@ -52,8 +49,7 @@
         "td-headers-attr": "表格",
         "th-has-data-cells": "表格",
         "valid-lang": "語言",
-        "video-caption": "影片",
-        "video-description": "影片"
+        "video-caption": "影片"
     },
-    "nokb": "(無指定的登錄)"
+    "nokb": "（無指定的登錄項目）"
 }

@@ -1,36 +1,23 @@
 'use strict';
 
-// input: json extraction of metadata
-// output: description of accessibility metadata
-/*
-{
-"missing": ["accessibilityFeature", "accessibilityAPI"],
-"empty": ["accessibilityControl"],
-"present": ["accessibilityHazard"]
-}
-
-*/
-
 const winston = require('winston');
 
 // duplicate of /ace-core/a11y-metadata.js :(
 // (circular dependency reference)
 const a11yMeta = [
-// http://kb.daisy.org/publishing/docs/metadata/schema.org/index.html
 "schema:accessMode",
 "schema:accessibilityFeature",
 "schema:accessibilityHazard",
 "schema:accessibilitySummary",
 "schema:accessModeSufficient",
+
 "schema:accessibilityAPI",
 "schema:accessibilityControl",
-// (see a11yMetadata.A11Y_META in ace-core)
 
-// http://kb.daisy.org/publishing/docs/metadata/evaluation.html
 "a11y:certifiedBy",
-"a11y:certifierCredential", //(MAY BE link in EPUB3)
-"a11y:certifierReport", //(link in EPUB3)
-"dcterms:conformsTo" //(link in EPUB3)
+"a11y:certifierCredential",
+"a11y:certifierReport",
+"dcterms:conformsTo"
 ];
 
 module.exports = {
@@ -65,7 +52,8 @@ module.exports = {
           results["empty"].push(property);
         }
       }
-      else {
+      // discouraged: true
+      else if (property !== "schema:accessibilityAPI" && property !== "schema:accessibilityControl") {
         results["missing"].push(property);
       }
     });

@@ -47,6 +47,30 @@ function parseNavDoc(fullpath, epubDir) {
   // https://github.com/xmldom/xmldom/blob/3db6ccf3f7ecbde73608490d71f96c727abdd69a/lib/dom-parser.js#L12
   const doc = new DOMParser({errorHandler}).parseFromString(content, 'application/xhtml');
 
+  // Select the ToC
+  const select = xpath.useNamespaces({
+    html: 'http://www.w3.org/1999/xhtml',
+    epub: 'http://www.idpf.org/2007/ops',
+  });
+
+  const sPageList = select('//html:nav[@epub:type="page-list"]', doc);
+  const hasPageList = sPageList.length > 0;
+
+  let pageListHrefs = undefined;
+  if (hasPageList) {
+    const arr1 = select('descendant::html:a/@href', sPageList[0]);
+    pageListHrefs = arr1.map((o) => decodeURI(o.nodeValue));
+    // console.log(arr1.length, JSON.stringify(pageListHrefs, null, 4));
+  }
+  
+  let tocHrefs = undefined;
+  const sTOC = select('//html:nav[@epub:type="toc"]/html:ol', doc);
+  if (sTOC[0]) {
+    const arr2 = select('descendant::html:a/@href', sTOC[0]);
+    tocHrefs = arr2.map((o) => decodeURI(o.nodeValue));
+    // console.log(arr2.length, JSON.stringify(tocHrefs, null, 4));
+  }
+
   // Remove all links
   const aElems = doc.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'a');
   const len = aElems.length;
@@ -55,20 +79,14 @@ function parseNavDoc(fullpath, epubDir) {
     while (a.firstChild) a.parentNode.insertBefore(a.firstChild, a);
     a.parentNode.removeChild(a);
   }
-
-  // Select the ToC
-  const select = xpath.useNamespaces({
-    html: 'http://www.w3.org/1999/xhtml',
-    epub: 'http://www.idpf.org/2007/ops',
-  });
-  const toc = select('//html:nav'
-                        + '[@epub:type="toc"]/html:ol', doc);
-  const tocHTML = new XMLSerializer().serializeToString(toc[0]);
-  const hasPageList = select('//html:nav'
-                        + '[@epub:type="page-list"]', doc).length > 0;
+  
+  const tocHTML = new XMLSerializer().serializeToString(sTOC[0]);
+  // console.log(tocHTML);
 
   return {
     src: path.relative(epubDir, fullpath),
+    pageListHrefs,
+    tocHrefs,
     tocHTML,
     hasPageList,
   };
@@ -76,6 +94,11 @@ function parseNavDoc(fullpath, epubDir) {
 
 
 function addMeta(name, value, meta) {
+  name = name.trim();
+  value = value.trim();
+  if (!name || !value) { // empty strings => bail out
+    return;
+  }
   if (!meta[name]) {
     meta[name] = value;
   } else if (!(meta[name] instanceof Array)) {
@@ -89,14 +112,35 @@ function parseMetadata(doc, select) {
   select('/opf:package/opf:metadata/dc:*', doc).forEach((dcElem) => {
     addMeta(`dc:${dcElem.localName}`, dcElem.textContent, result);
   });
-  select('/opf:package/opf:metadata/opf:meta[not(@refines)]', doc).forEach((meta) => {
+  select('/opf:package/opf:metadata/opf:meta', doc).forEach((meta) => {
     const prop = meta.getAttribute('property');
+    const name = meta.getAttribute('name');
+    const md = prop || name;
+
+    let refines = meta.getAttribute('refines');
+    if (refines) {
+      refines = refines.trim();
+      if (refines.startsWith("#")) {
+        refines = refines.substring(1);
+      }
+      refines = refines.trim();
+      if (refines) {
+        // we exclude most refined metadata such as audio duration for individual spine items, or title-type=subtitle for dc:title, etc.
+        // ... but we preserve known global metadata:
+        // here, this accessibility metadata can typically associated with a particular dcterms:conformsTo statement
+        // (unfortunately in this simplified metadata parsing model, we lose refine semantics completely,
+        // so multiple dcterms:conformsTo statements will not be explicitly linked to their associated a11y:cert* declarations)
+        if (md !== "a11y:certifiedBy" && md !== "a11y:certifierCredential" && md !== "a11y:certifierReport") {
+          return;
+        }
+      }
+    }
+
     if (prop) {
       if (meta.textContent) {
         addMeta(prop, meta.textContent, result);
       }
     } else {
-      const name = meta.getAttribute('name');
       const content = meta.getAttribute('content');
       if (name && content) {
         addMeta(name, content, result);
@@ -108,6 +152,8 @@ function parseMetadata(doc, select) {
 
 
 function addLink(rel, href, link) {
+  rel = rel.trim();
+  href = href.trim();
   if (!link[rel]) {
     link[rel] = href;
   } else if (!(link[rel] instanceof Array)) {
@@ -118,8 +164,31 @@ function addLink(rel, href, link) {
 }
 function parseLinks(doc, select) {
   const result = {};
-  select('/opf:package/opf:metadata/opf:link[not(@refines)]', doc).forEach((link) => {
-    addLink(link.getAttribute('rel'), decodeURI(link.getAttribute('href')), result);
+  select('/opf:package/opf:metadata/opf:link', doc).forEach((link) => {
+
+    const rel = link.getAttribute('rel');
+
+    let refines = link.getAttribute('refines');
+    if (refines) {
+      refines = refines.trim();
+      if (refines.startsWith("#")) {
+        refines = refines.substring(1);
+      }
+      refines = refines.trim();
+      if (refines) {
+        // we exclude most refined metadata such as audio duration for individual spine items, or title-type=subtitle for dc:title, etc.
+        // ... but we preserve known global metadata:
+        // here, this accessibility metadata can typically associated with a particular dcterms:conformsTo statement
+        // (unfortunately in this simplified metadata parsing model, we lose refine semantics completely,
+        // so multiple dcterms:conformsTo statements will not be explicitly linked to their associated a11y:cert* declarations)
+        if ( // rel !== "a11y:certifiedBy" &&
+          rel !== "a11y:certifierCredential" && rel !== "a11y:certifierReport") {
+          return;
+        }
+      }
+    }
+
+    addLink(rel, decodeURI(link.getAttribute('href')), result);
   });
   return result;
 }
@@ -139,9 +208,11 @@ EpubParser.prototype.parse = function(epubDir) {
     if (packageDocPath === '') {
       winston.error('Package document not found.');
       reject(new Error("Package document not found."));
+      return;
     }
     this.packageDoc = {
       src: path.relative(epubDir, packageDocPath),
+      path: packageDocPath,
     };
     this.parseData(packageDocPath, epubDir);
     resolve(this);
@@ -153,7 +224,13 @@ EpubParser.prototype.parseData = function(packageDocPath, epubDir) {
   const doc = new DOMParser({errorHandler}).parseFromString(content);
   const select = xpath.useNamespaces(
     { opf: 'http://www.idpf.org/2007/opf',
-      dc: 'http://purl.org/dc/elements/1.1/'});
+      dc: 'http://purl.org/dc/elements/1.1/',
+      xml: 'http://www.w3.org/XML/1998/namespace'
+  });
+
+  const langAttr = select('/opf:package/@xml:lang', doc)[0];
+  this.opfLang = langAttr ? langAttr.nodeValue : undefined;
+
   this.metadata = parseMetadata(doc, select);
   this.links = parseLinks(doc, select);
 
@@ -168,7 +245,10 @@ EpubParser.prototype.parseData = function(packageDocPath, epubDir) {
         var spineItem = new SpineItem();
         spineItem.relpath = decodeURI(manifestItem[0].getAttribute('href'));
         spineItem.filepath = path.join(path.dirname(packageDocPath), spineItem.relpath);
-        spineItem.title = this.parseContentDocTitle(spineItem.filepath);
+
+        const o = this.parseContentDocTitleAndIds(spineItem.filepath);
+        spineItem.title = o.titleText;
+        spineItem.targetIDs = o.docIds;
 
         // does encodeURI() as per https://tools.ietf.org/html/rfc3986#section-3.3 in a nutshell: encodeURI(`file://${tmpFile}`).replace(/[?#]/g, encodeURIComponent)
         spineItem.url = fileUrl(spineItem.filepath);
@@ -182,6 +262,17 @@ EpubParser.prototype.parseData = function(packageDocPath, epubDir) {
             spineContainsNavDoc = spineItem;
           }
         }
+
+        const moAttr = manifestItem[0].getAttribute('media-overlay');
+        const smilManifestItem = select(`/opf:package/opf:manifest/opf:item[@id='${moAttr}']`, doc);
+        if (smilManifestItem.length > 0) {
+          spineItem.mediaOverlay = {};
+          spineItem.mediaOverlay.smilRelPath = decodeURI(smilManifestItem[0].getAttribute('href'));
+          spineItem.mediaOverlay.smilFilePath = path.join(path.dirname(packageDocPath), spineItem.mediaOverlay.smilRelPath );
+          // spineItem.mediaOverlay.smilUrl = fileUrl(spineItem.mediaOverlay.smilFilePath);
+          spineItem.mediaOverlay.smilRefs = this.parseSmilRefs(spineItem.mediaOverlay.smilFilePath);
+        }
+
       } else if (!this.hasSVGContentDocuments && 'image/svg+xml' === contentType) {
         winston.warn('The SVG Content Documents in this EPUB will be ignored.');
         this.hasSVGContentDocuments = true;
@@ -197,6 +288,10 @@ EpubParser.prototype.parseData = function(packageDocPath, epubDir) {
     const navDocFullPath = path.join(path.dirname(packageDocPath), navDocPath);
     this.navDoc = parseNavDoc(navDocFullPath, epubDir);
 
+    this.navDoc.relpath = navDocPath;
+    this.navDoc.filepath = navDocFullPath;
+    this.navDoc.url = fileUrl(this.navDoc.filepath);
+
     if (spineContainsNavDoc) {
       if (spineContainsNavDoc.filepath !== navDocFullPath) {
         console.log("Nav Doc Spine DIFF PATHS!?", spineContainsNavDoc.filepath, navDocFullPath);
@@ -206,8 +301,14 @@ EpubParser.prototype.parseData = function(packageDocPath, epubDir) {
 
       spi.relpath = navDocPath;
       spi.filepath = navDocFullPath;
-      spi.title = this.parseContentDocTitle(spi.filepath);
+
+      const o = this.parseContentDocTitleAndIds(spi.filepath);
+      spi.title = o.titleText;
+      spi.targetIDs = o.docIds;
+
       spi.url = fileUrl(spi.filepath);
+
+      spi.notInReadingOrder = true;
 
       this.contentDocs.push(spi);
     }
@@ -218,7 +319,33 @@ EpubParser.prototype.parseData = function(packageDocPath, epubDir) {
   this.hasManifestFallbacks = select('/opf:package/opf:manifest/opf:item[@fallback]', doc).length > 0;
 };
 
-EpubParser.prototype.parseContentDocTitle = function(filepath) {
+EpubParser.prototype.parseSmilRefs = function(filepath) {
+  const content = fs.readFileSync(filepath).toString();
+  const doc = new DOMParser({errorHandler}).parseFromString(content, 'application/xml');
+  const select = xpath.useNamespaces({smil: "http://www.w3.org/ns/SMIL", epub: "http://www.idpf.org/2007/ops"});
+  
+  const arr = select('//smil:text[@src]', doc);
+  let smilRefs = arr.map((o) => {
+    let epubType = o.parentNode ? o.parentNode.getAttributeNS('http://www.idpf.org/2007/ops', 'type') : undefined;
+    if (epubType) {
+      epubType = epubType.trim();
+    }
+    if (!epubType) {
+      epubType = undefined;
+    }
+
+    const src = o.getAttribute("src");
+    return {
+      src,
+      full: path.join(path.dirname(filepath), src),
+      epubType
+    };
+  });
+  // console.log(arr.length, JSON.stringify(smilRefs, null, 4));
+
+  return smilRefs;
+}
+EpubParser.prototype.parseContentDocTitleAndIds = function(filepath) {
   const content = fs.readFileSync(filepath).toString();
   // not application/xhtml+xml because:
   // https://github.com/jindw/xmldom/pull/208
@@ -227,12 +354,27 @@ EpubParser.prototype.parseContentDocTitle = function(filepath) {
   const doc = new DOMParser({errorHandler}).parseFromString(content, 'application/xhtml');
   const select = xpath.useNamespaces({html: "http://www.w3.org/1999/xhtml", epub: "http://www.idpf.org/2007/ops"});
   const title = select('/html:html/html:head/html:title/text()', doc);
-  if (title.length > 0) {
-    return title[0].nodeValue;
-  }
-  else {
-    return "";
-  }
+  let titleText = title.length > 0 ? title[0].nodeValue : "";
+
+  const arr = select('//*[@id]', doc);
+  let docIds = arr.map((o) => {
+    let epubType = o.getAttributeNS('http://www.idpf.org/2007/ops', 'type');
+    if (epubType) {
+      epubType = epubType.trim();
+    }
+    if (!epubType) {
+      epubType = undefined;
+    }
+   return {
+    id: o.getAttribute("id"),
+    epubType
+   };
+  });
+  // console.log(arr.length, JSON.stringify(docIds, null, 4));
+
+  return {
+    titleText, docIds
+  };
 }
 
 EpubParser.prototype.calculatePackageDocPath = function(epubDir) {
